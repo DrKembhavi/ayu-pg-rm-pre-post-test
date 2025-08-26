@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AYPG-RM Pre/Post Assessment Tool</title>
+  <!-- Tailwind Play CDN for quick styling on GitHub Pages -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+    .card { @apply bg-white rounded-2xl shadow-lg p-6; }
+    .btn { @apply inline-flex items-center justify-center rounded-xl px-4 py-2 font-medium shadow-sm transition; }
+    .btn-primary { @apply bg-indigo-600 text-white hover:bg-indigo-700; }
+    .btn-ghost { @apply bg-white hover:bg-gray-50 ring-1 ring-gray-200; }
+    .badge { @apply inline-flex items-center rounded-full bg-indigo-50 text-indigo-700 text-xs font-medium px-2.5 py-1; }
+    .section-title { @apply text-lg font-semibold mt-6 mb-3; }
+    .q { @apply mb-4; }
+    .q label { @apply font-medium; }
+    .q textarea { @apply mt-2 w-full rounded-xl border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500; min-height: 88px; }
+    .q input[type="number"] { @apply w-24 rounded-lg border border-gray-300 p-2; }
+    .q .options { @apply mt-2 space-y-2; }
+    .pill { @apply px-2.5 py-1 rounded-full text-xs font-medium; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <header class="sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-gray-200">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+      <div class="h-10 w-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold">RM</div>
+      <div>
+        <h1 class="text-xl font-semibold">AYPG-RM Pre/Post Assessment</h1>
+        <p class="text-sm text-gray-500">NCISM Semester I – Research Methodology | MD/MS Ayurveda</p>
+      </div>
+      <div class="ml-auto flex items-center gap-2">
+        <button id="btnPre" class="btn btn-ghost">Pre-Test</button>
+        <button id="btnPost" class="btn btn-ghost">Post-Test</button>
+        <button id="btnFaculty" class="btn btn-ghost hidden">Faculty Scoring</button>
+        <button id="btnExport" class="btn btn-primary">Export CSV</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto p-4 grid lg:grid-cols-3 gap-6">
+    <section class="lg:col-span-2 card">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 id="modeTitle" class="text-2xl font-semibold">Pre-Test</h2>
+          <p id="modeSub" class="text-gray-500">Fill the questionnaire. Free-text items will be faculty-scored later.</p>
+        </div>
+        <div class="space-x-2">
+          <span class="badge" id="badgeMode">Student Mode</span>
+          <span class="badge">Client-side only</span>
+        </div>
+      </div>
+      
+      <div class="mt-6 grid gap-6" id="questionContainer"></div>
+
+      <div id="studentScore" class="mt-6 hidden">
+        <h3 class="text-lg font-semibold mb-2">Your Auto-Score</h3>
+        <div class="grid md:grid-cols-3 gap-3">
+          <div class="bg-gray-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600">Knowledge (MCQs)</div>
+            <div class="text-2xl font-bold" id="scoreMcq">0 / 0</div>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600">Self-Rating (Likert avg)</div>
+            <div class="text-2xl font-bold" id="scoreLikert">–</div>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600">Completion</div>
+            <div class="text-2xl font-bold" id="scoreCompletion">0%</div>
+          </div>
+        </div>
+        <p class="text-xs text-gray-500 mt-2">Note: Free-text questions require faculty evaluation and are not auto-scored.</p>
+      </div>
+
+      <div id="facultyPanel" class="mt-8 hidden">
+        <h3 class="text-lg font-semibold mb-2">Faculty Scoring Panel</h3>
+        <p class="text-sm text-gray-500 mb-4">Enter rubric scores for free-text items. MCQs are auto-scored.</p>
+        <div id="facultyScores" class="grid gap-3"></div>
+        <div class="mt-4 grid md:grid-cols-4 gap-3">
+          <div class="bg-gray-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600">Auto MCQ Score</div>
+            <div class="text-2xl font-bold" id="facMcq">0</div>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600">Faculty Text Score</div>
+            <div class="text-2xl font-bold" id="facText">0</div>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600">Likert Sum</div>
+            <div class="text-2xl font-bold" id="facLikert">0</div>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600">Total (MCQ+Text)</div>
+            <div class="text-2xl font-bold" id="facTotal">0</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="card h-max sticky top-20">
+      <h3 class="text-lg font-semibold mb-2">Student Details</h3>
+      <div class="grid grid-cols-1 gap-3">
+        <div>
+          <label class="block text-sm text-gray-600">Student ID</label>
+          <input id="studentId" class="w-full rounded-xl border border-gray-300 p-3" placeholder="e.g., 24PG001" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600">Full Name</label>
+          <input id="studentName" class="w-full rounded-xl border border-gray-300 p-3" placeholder="First Last" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600">Email (optional)</label>
+          <input id="studentEmail" type="email" class="w-full rounded-xl border border-gray-300 p-3" placeholder="name@example.com" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600">Attempt</label>
+          <select id="attempt" class="w-full rounded-xl border border-gray-300 p-3">
+            <option>Pre</option>
+            <option>Post</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <h4 class="text-sm font-semibold text-gray-700 mb-2">Quick Stats</h4>
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div class="bg-gray-50 rounded-xl p-3">
+            <div class="text-2xl font-bold" id="countAnswered">0</div>
+            <div class="text-xs text-gray-500">Answered</div>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-3">
+            <div class="text-2xl font-bold" id="countPending">0</div>
+            <div class="text-xs text-gray-500">Pending</div>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-3">
+            <div class="text-2xl font-bold" id="countLikert">0</div>
+            <div class="text-xs text-gray-500">Likert</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 flex gap-2">
+        <button id="btnClear" class="btn btn-ghost w-full">Clear Form</button>
+        <button id="btnPreview" class="btn btn-primary w-full">Finish & Score</button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Preview Modal -->
+  <div id="previewModal" class="fixed inset-0 hidden items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-6 max-h-[80vh] overflow-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-semibold">Summary</h3>
+        <button id="closePreview" class="btn btn-ghost">Close</button>
+      </div>
+      <div id="previewContent" class="prose max-w-none"></div>
+    </div>
+  </div>
+
+  <script>
+    // --- MODE via URL PARAM ---
+    const params = new URLSearchParams(location.search);
+    const isFaculty = params.get('mode') === 'faculty';
+
+    // --- QUESTION BANK ---
+    // Type can be: "mcq", "text", "likert"
+    const bank = [
+      {
+        section: "Research Basics",
+        items: [
+          { id:"RB1", type:"text", q:"Define evidence-based medicine (EBM). List its levels of evidence.", max:3 },
+          { id:"RB2", type:"mcq", q:"Which is NOT a step in the research process?", options:["Literature review","Hypothesis framing","Horoscope analysis","Data analysis"], correct:2 },
+          { id:"RB3", type:"text", q:"Identify two major challenges in Ayurveda research compared to modern medicine.", max:2 },
+          { id:"RB4", type:"text", q:"Write a research question using the PICO(T) format.", max:5 },
+          { id:"RB5", type:"text", q:"Differentiate H0 and H1 with an Ayurveda example.", max:3 },
+          { id:"RB6", type:"text", q:"Name two sources for literature review in Ayurveda.", max:2 },
+          { id:"RB7", type:"text", q:"What is the FINER criteria in research question framing?", max:2 },
+          { id:"RB8", type:"text", q:"Differentiate applied vs basic research in Ayurveda with one example each.", max:3 },
+          { id:"RB9", type:"text", q:"Give one example of qualitative research in Ayurveda.", max:1 },
+          { id:"RB10", type:"text", q:"Give one example of quantitative research in Ayurveda.", max:1 }
+        ]
+      },
+      {
+        section: "Ethics & Regulatory Aspects",
+        items: [
+          { id:"ER1", type:"text", q:"List the four principles of research ethics.", max:2 },
+          { id:"ER2", type:"mcq", q:"Which is mandatory for clinical trials in India?", options:["CTRI Registration","Patent filing","Animal house registration","Indexing in PubMed"], correct:0 },
+          { id:"ER3", type:"text", q:"Case: Children enrolled without consent. Identify violated ethical principle.", max:1 },
+          { id:"ER4", type:"text", q:"Describe the role of IEC in Ayurveda research.", max:3 },
+          { id:"ER5", type:"text", q:"Copyright vs Patent with an Ayurveda example.", max:2 },
+          { id:"ER6", type:"text", q:"What is Pharmacovigilance in Ayurveda?", max:2 },
+          { id:"ER7", type:"text", q:"Which body regulates animal ethics in India?", max:1 },
+          { id:"ER8", type:"text", q:"What is informed consent? Why is it important?", max:3 },
+          { id:"ER9", type:"text", q:"Give one ethical issue specific to Ayurveda trials.", max:1 },
+          { id:"ER10", type:"text", q:"What is IPR? Name any two types.", max:2 }
+        ]
+      },
+      {
+        section: "Research Types",
+        items: [
+          { id:"RT1", type:"text", q:"Match study designs with applications: Case-control, Cohort, Cross-sectional.", max:2 },
+          { id:"RT2", type:"text", q:"Define bias and list two strategies to minimize it.", max:2 },
+          { id:"RT3", type:"mcq", q:"Gold standard design for clinical research is:", options:["Cross-sectional","Case-control","RCT","Narrative review"], correct:2 },
+          { id:"RT4", type:"text", q:"Two advantages and two limitations of preclinical studies.", max:3 },
+          { id:"RT5", type:"text", q:"What is literary research in Ayurveda? Give one example.", max:2 },
+          { id:"RT6", type:"text", q:"Differentiate descriptive vs analytical studies.", max:2 },
+          { id:"RT7", type:"text", q:"Give one example of a cohort study in Ayurveda.", max:1 },
+          { id:"RT8", type:"text", q:"Give one example of a case series in Ayurveda.", max:1 },
+          { id:"RT9", type:"text", q:"Explain qualitative vs quantitative research in one line each.", max:2 },
+          { id:"RT10", type:"text", q:"List any two innovative designs (e.g., N-of-1, whole-system).", max:2 }
+        ]
+      },
+      {
+        section: "Research Communication",
+        items: [
+          { id:"RC1", type:"text", q:"Arrange the dissertation sequence.", max:2 },
+          { id:"RC2", type:"text", q:"Two differences between protocol and funding proposal.", max:2 },
+          { id:"RC3", type:"text", q:"What is PRISMA used for?", max:1 },
+          { id:"RC4", type:"text", q:"One advantage and one risk of predatory journals.", max:2 },
+          { id:"RC5", type:"mcq", q:"H-index measures:", options:["Journal quality","Author impact","Study validity","Funding availability"], correct:1 },
+          { id:"RC6", type:"text", q:"Define plagiarism.", max:1 },
+          { id:"RC7", type:"text", q:"What is scientometrics?", max:1 },
+          { id:"RC8", type:"text", q:"List two citation styles.", max:1 },
+          { id:"RC9", type:"text", q:"Difference between review and original research article.", max:2 },
+          { id:"RC10", type:"text", q:"What is a journal impact factor?", max:1 }
+        ]
+      },
+      {
+        section: "Application & Attitude",
+        items: [
+          { id:"AA1", type:"text", q:"Best databases/portals for Ayurveda research?", max:2 },
+          { id:"AA2", type:"text", q:"Interpret: Ayurvedic group p < 0.05 vs placebo.", max:2 },
+          { id:"AA3", type:"text", q:"Name any plagiarism-check software.", max:1 },
+          { id:"AA4", type:"text", q:"Which guideline is for clinical trials reporting?", max:1 },
+          { id:"AA5", type:"text", q:"How to minimize confounding?", max:2 },
+          { id:"AA6", type:"text", q:"Which IT tool helps in reference management?", max:1 },
+          { id:"AA7", type:"text", q:"What is meta-analysis?", max:1 },
+          { id:"AA8", type:"likert", q:"I am confident in framing a research hypothesis." },
+          { id:"AA9", type:"likert", q:"I can critically appraise a published article." },
+          { id:"AA10", type:"likert", q:"I can independently conduct a PG-level research project." }
+        ]
+      }
+    ];
+
+    // --- STATE ---
+    let currentMode = 'Pre'; // Pre | Post
+    const answers = {}; // { id: { value, type } }
+
+    function render() {
+      document.getElementById('modeTitle').textContent = currentMode + '-Test';
+      document.getElementById('attempt').value = currentMode;
+      const container = document.getElementById('questionContainer');
+      container.innerHTML = '';
+
+      // Hide/Show Faculty elements
+      document.getElementById('btnFaculty').classList.toggle('hidden', !isFaculty);
+      document.getElementById('badgeMode').textContent = isFaculty ? 'Faculty Mode' : 'Student Mode';
+      document.getElementById('modeSub').textContent = isFaculty ? 'Enter rubric scores for free-text items; MCQs auto-scored.' : 'Free-text items will be faculty-scored later.';
+
+      bank.forEach(section => {
+        const secEl = document.createElement('div');
+        secEl.className = 'border border-gray-200 rounded-2xl p-5';
+        secEl.innerHTML = `<div class="flex items-center justify-between mb-3"><h3 class="text-lg font-semibold">${section.section}</h3>
+          <span class="text-xs text-gray-500">${section.items.length} items</span></div>`;
+
+        section.items.forEach((item, idx) => {
+          const qWrap = document.createElement('div');
+          qWrap.className = 'q';
+          const label = document.createElement('label');
+          const max = isFaculty && item.type === 'text' && item.max ? ` <span class='pill bg-gray-100 text-gray-700 ml-2'>Max ${item.max}</span>` : '';
+          label.innerHTML = `${idx+1}. ${item.q}${max}`;
+          qWrap.appendChild(label);
+
+          if(item.type === 'mcq') {
+            const opts = document.createElement('div');
+            opts.className = 'options';
+            item.options.forEach((opt, i) => {
+              const id = `${item.id}_${i}`;
+              const row = document.createElement('label');
+              row.className = 'flex items-center gap-2';
+              row.innerHTML = `<input type="radio" name="${item.id}" id="${id}" class="h-4 w-4" value="${i}"> <span>${String.fromCharCode(97+i)}) ${opt}</span>`;
+              opts.appendChild(row);
+            });
+            qWrap.appendChild(opts);
+          } else if(item.type === 'likert') {
+            const sel = document.createElement('select');
+            sel.className = 'mt-2 w-40 rounded-xl border border-gray-300 p-2';
+            sel.innerHTML = `<option value="">Select (1–5)</option>` +
+                            [1,2,3,4,5].map(v=>`<option>${v}</option>`).join('');
+            sel.dataset.qid = item.id;
+            sel.addEventListener('change', saveAnswer);
+            qWrap.appendChild(sel);
+          } else { // text
+            const ta = document.createElement('textarea');
+            ta.placeholder = 'Type your answer here...';
+            ta.dataset.qid = item.id;
+            ta.addEventListener('input', saveAnswer);
+            qWrap.appendChild(ta);
+
+            if(isFaculty) {
+              const score = document.createElement('input');
+              score.type = 'number';
+              score.min = 0; score.max = item.max || 5; score.step = 0.5; score.placeholder = 'Score';
+              score.className = 'ml-2';
+              score.dataset.scoreFor = item.id;
+              score.addEventListener('input', updateFacultyTotals);
+              qWrap.appendChild(score);
+            }
+          }
+
+          secEl.appendChild(qWrap);
+        });
+
+        container.appendChild(secEl);
+      });
+
+      updateStats();
+      updateFacultyTotals();
+    }
+
+    function saveAnswer(e){
+      const id = e.target.dataset.qid;
+      if(!id) return;
+      answers[id] = { value: e.target.value, type: e.target.tagName.toLowerCase() };
+      updateStats();
+    }
+
+    function collectResponses(){
+      const data = {
+        timestamp: new Date().toISOString(),
+        mode: isFaculty ? 'Faculty' : 'Student',
+        attempt: document.getElementById('attempt').value,
+        studentId: document.getElementById('studentId').value || '',
+        studentName: document.getElementById('studentName').value || '',
+        studentEmail: document.getElementById('studentEmail').value || ''
+      };
+
+      bank.forEach(section => section.items.forEach(item => {
+        if(item.type === 'mcq'){
+          const checked = document.querySelector(`input[name="${item.id}"]:checked`);
+          data[item.id] = checked ? checked.value : '';
+          if(checked){ answers[item.id] = { value: checked.value, type: 'mcq' }; }
+        } else if(item.type === 'likert') {
+          const sel = document.querySelector(`select[data-qid="${item.id}"]`);
+          data[item.id] = sel ? sel.value : '';
+        } else {
+          const ta = document.querySelector(`textarea[data-qid="${item.id}"]`);
+          data[item.id] = ta ? ta.value.trim() : '';
+        }
+      }));
+      return data;
+    }
+
+    function updateStats(){
+      let answered = 0, pending = 0, likert = 0;
+      bank.forEach(section => section.items.forEach(item => {
+        if(item.type === 'likert') likert++;
+        const val = getValue(item.id);
+        if(val) answered++; else pending++;
+      }));
+      document.getElementById('countAnswered').textContent = answered;
+      document.getElementById('countPending').textContent = pending;
+      document.getElementById('countLikert').textContent = likert;
+    }
+
+    function getValue(qid){
+      const mcq = document.querySelector(`input[name="${qid}"]:checked`);
+      if(mcq) return mcq.value;
+      const sel = document.querySelector(`select[data-qid="${qid}"]`);
+      if(sel && sel.value) return sel.value;
+      const ta = document.querySelector(`textarea[data-qid="${qid}"]`);
+      if(ta && ta.value.trim()) return ta.value.trim();
+      return '';
+    }
+
+    function mcqScore(){
+      let total = 0, correct = 0;
+      bank.forEach(section => section.items.forEach(item => {
+        if(item.type === 'mcq'){
+          total++;
+          const checked = document.querySelector(`input[name="${item.id}"]:checked`);
+          if(checked && parseInt(checked.value,10) === item.correct) correct++;
+        }
+      }));
+      return { total, correct };
+    }
+
+    function likertStats(){
+      let sum = 0, count = 0;
+      bank.forEach(section => section.items.forEach(item => {
+        if(item.type === 'likert'){
+          const sel = document.querySelector(`select[data-qid="${item.id}"]`);
+          if(sel && sel.value){ sum += parseInt(sel.value,10); count++; }
+        }
+      }));
+      return { sum, count, avg: count? (sum/count).toFixed(2) : '–' };
+    }
+
+    function completionRate(){
+      let answered = 0, total = 0;
+      bank.forEach(section => section.items.forEach(item => { total++; if(getValue(item.id)) answered++; }));
+      return total ? Math.round((answered/total)*100) : 0;
+    }
+
+    function showStudentScore(){
+      const mcq = mcqScore();
+      const lik = likertStats();
+      const comp = completionRate();
+      document.getElementById('studentScore').classList.remove('hidden');
+      document.getElementById('scoreMcq').textContent = `${mcq.correct} / ${mcq.total}`;
+      document.getElementById('scoreLikert').textContent = lik.avg;
+      document.getElementById('scoreCompletion').textContent = comp + '%';
+    }
+
+    function updateFacultyTotals(){
+      if(!isFaculty) return;
+      const mcq = mcqScore();
+      document.getElementById('facMcq').textContent = mcq.correct;
+      const inputs = document.querySelectorAll('input[data-score-for]');
+      let textSum = 0; inputs.forEach(i=> { const v=parseFloat(i.value); if(!isNaN(v)) textSum += v; });
+      document.getElementById('facText').textContent = textSum;
+      const lik = likertStats();
+      document.getElementById('facLikert').textContent = lik.sum;
+      document.getElementById('facTotal').textContent = textSum + mcq.correct;
+    }
+
+    function toCSV(obj){
+      const headers = Object.keys(obj);
+      const values = headers.map(h => '"' + String(obj[h]).replaceAll('"','""') + '"');
+      return headers.join(',') + '\n' + values.join(',');
+    }
+
+    function exportCSV(withScores=true){
+      const row = collectResponses();
+      const mcq = mcqScore();
+      const lik = likertStats();
+      row._mcq_correct = mcq.correct;
+      row._mcq_total = mcq.total;
+      row._likert_sum = lik.sum;
+      row._likert_count = lik.count;
+      row._likert_avg = lik.count? (lik.sum/lik.count).toFixed(2) : '';
+      if(isFaculty){
+        // include faculty text total and grand total
+        const inputs = document.querySelectorAll('input[data-score-for]');
+        let textSum = 0; const detail={}; inputs.forEach(i=>{ const k=i.dataset.scoreFor; const v=parseFloat(i.value)||0; textSum+=v; detail[`_score_${k}`]=v; });
+        Object.assign(row, detail);
+        row._text_total = textSum;
+        row._total = textSum + mcq.correct;
+      }
+      const csv = toCSV(row);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      const id = row.studentId || 'anonymous';
+      const suffix = isFaculty? 'Faculty' : 'Student';
+      a.href = URL.createObjectURL(blob);
+      a.download = `${id}_${row.attempt}_AYPG-RM_${suffix}.csv`;
+      a.click();
+    }
+
+    // Export CSV
+    document.getElementById('btnExport').addEventListener('click', () => exportCSV(true));
+
+    // Mode switching buttons
+    document.getElementById('btnPre').addEventListener('click', () => { currentMode = 'Pre'; render(); });
+    document.getElementById('btnPost').addEventListener('click', () => { currentMode = 'Post'; render(); });
+    document.getElementById('btnFaculty').addEventListener('click', () => { /* only visible via URL */ });
+
+    // Clear
+    document.getElementById('btnClear').addEventListener('click', () => {
+      document.querySelectorAll('textarea').forEach(t=> t.value='');
+      document.querySelectorAll('input[type=radio]').forEach(r=> r.checked=false);
+      document.querySelectorAll('select[data-qid]').forEach(s=> s.value='');
+      document.querySelectorAll('input[data-score-for]').forEach(s=> s.value='');
+      for(const k in answers) delete answers[k];
+      document.getElementById('studentScore').classList.add('hidden');
+      updateStats();
+      updateFacultyTotals();
+    });
+
+    // Finish & Score (Preview)
+    document.getElementById('btnPreview').addEventListener('click', () => {
+      const row = collectResponses();
+      const pc = document.getElementById('previewContent');
+      pc.innerHTML = '';
+      const meta = document.createElement('div');
+      meta.className = 'mb-4 text-sm text-gray-600';
+      meta.textContent = `Student: ${row.studentName || '-'} | ID: ${row.studentId || '-'} | Attempt: ${row.attempt} | ${new Date().toLocaleString()}`;
+      pc.appendChild(meta);
+
+      // Auto-score now for students
+      showStudentScore();
+      if(isFaculty){ updateFacultyTotals(); }
+
+      // Build response list
+      bank.forEach(section => {
+        const h = document.createElement('h4'); h.className='section-title'; h.textContent = section.section; pc.appendChild(h);
+        section.items.forEach(item => {
+          const p = document.createElement('div');
+          p.className = 'mb-2';
+          const a = row[item.id] || '';
+          if(item.type === 'mcq' && a !== ''){
+            const idx = parseInt(a,10);
+            const correct = (idx === item.correct);
+            p.innerHTML = `<div class='text-sm text-gray-800'><span class='font-medium'>Q:</span> ${item.q}</div>
+                           <div class='text-sm'><span class='font-medium'>A:</span> ${String.fromCharCode(97+idx)}) ${item.options[idx]} ${correct? "<span class='pill bg-green-100 text-green-700 ml-2'>Correct</span>":"<span class='pill bg-red-100 text-red-700 ml-2'>Incorrect</span>"}</div>`;
+          } else if(item.type === 'likert'){
+            p.innerHTML = `<div class='text-sm text-gray-800'><span class='font-medium'>Q:</span> ${item.q}</div>
+                           <div class='text-sm'><span class='font-medium'>A:</span> ${a || '<em class="text-gray-400">(no rating)</em>'}</div>`;
+          } else {
+            p.innerHTML = `<div class='text-sm text-gray-800'><span class='font-medium'>Q:</span> ${item.q}</div>
+                           <div class='text-sm whitespace-pre-wrap'><span class='font-medium'>A:</span> ${a || '<em class="text-gray-400">(no answer)</em>'}</div>`;
+          }
+          pc.appendChild(p);
+        });
+      });
+
+      document.getElementById('previewModal').classList.remove('hidden');
+      document.getElementById('previewModal').classList.add('flex');
+    });
+    document.getElementById('closePreview').addEventListener('click', () => {
+      document.getElementById('previewModal').classList.add('hidden');
+      document.getElementById('previewModal').classList.remove('flex');
+    });
+
+    // Initialize mode
+    currentMode = 'Pre';
+    // Reveal faculty extras if ?mode=faculty
+    if(isFaculty){
+      document.getElementById('btnFaculty').classList.remove('hidden');
+      document.getElementById('facultyPanel').classList.remove('hidden');
+    }
+    render();
+  </script>
+</body>
+</html>
